@@ -1,37 +1,79 @@
 import streamlit as st
 import pickle
 import numpy as np
+import os
 
-# Load saved files
-model = pickle.load(open("../models/student_model.pkl", "rb"))
-scaler = pickle.load(open("../models/scaler.pkl", "rb"))
-label_encoder = pickle.load(open("../models/label_encoder.pkl", "rb"))
+# =========================
+# LOAD SAVED FILES
+# =========================
 
-# Page config
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+model_path = os.path.join(
+    BASE_DIR,
+    "..",
+    "models",
+    "student_model.pkl"
+)
+
+scaler_path = os.path.join(
+    BASE_DIR,
+    "..",
+    "models",
+    "scaler.pkl"
+)
+
+encoder_path = os.path.join(
+    BASE_DIR,
+    "..",
+    "models",
+    "label_encoder.pkl"
+)
+
+model = pickle.load(open(model_path, "rb"))
+scaler = pickle.load(open(scaler_path, "rb"))
+label_encoder = pickle.load(open(encoder_path, "rb"))
+
+# =========================
+# PAGE CONFIG
+# =========================
+
 st.set_page_config(
     page_title="Student Performance Prediction",
     page_icon="🎓",
     layout="centered"
 )
 
-# Title
+# =========================
+# TITLE
+# =========================
+
 st.title("🎓 Student Performance Prediction System")
 
 st.markdown(
     """
     Predict whether a student is likely to perform:
+
     - Weak
     - Average
     - Excellent
-    
+
     using machine learning techniques.
     """
 )
 
-# Sidebar
+# =========================
+# SIDEBAR INPUTS
+# =========================
+
 st.sidebar.header("Enter Student Details")
 
-age = st.sidebar.slider("Age", 15, 22, 18)
+age = st.sidebar.slider(
+    "Age",
+    15,
+    22,
+    18
+)
 
 studytime = st.sidebar.slider(
     "Study Time",
@@ -68,44 +110,57 @@ G2 = st.sidebar.slider(
     10
 )
 
-# Create input array
+# =========================
+# CREATE INPUT ARRAY
+# =========================
+
 input_data = np.array([
     G1,
     G2,
     absences,
-    failures,
+    age,
     studytime,
-    age
+    failures
 ]).reshape(1, -1)
 
-# Scale input
+# =========================
+# SCALE INPUT
+# =========================
+
 input_scaled = scaler.transform(input_data)
 
-# Predict
+# =========================
+# PREDICTION
+# =========================
+
 prediction = model.predict(input_scaled)
 
-# Probabilities
 prediction_proba = model.predict_proba(input_scaled)
 
-# Decode label
 result = label_encoder.inverse_transform(prediction)
 
-# Prediction button
+# =========================
+# BUTTON
+# =========================
+
 if st.button("Predict Performance"):
 
     confidence = np.max(prediction_proba) * 100
 
     if result[0] == "Excellent":
+
         st.success(
             f"🎉 Predicted Performance: {result[0]}"
         )
 
     elif result[0] == "Average":
+
         st.warning(
             f"📘 Predicted Performance: {result[0]}"
         )
 
     else:
+
         st.error(
             f"⚠️ Predicted Performance: {result[0]}"
         )
@@ -114,7 +169,10 @@ if st.button("Predict Performance"):
         f"Confidence Score: {confidence:.2f}%"
     )
 
-# Footer
+# =========================
+# FOOTER
+# =========================
+
 st.markdown("---")
 
 st.caption(
