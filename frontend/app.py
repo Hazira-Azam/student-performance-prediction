@@ -1,38 +1,5 @@
 import streamlit as st
-import pickle
-import numpy as np
-import os
-
-# =========================
-# LOAD SAVED FILES
-# =========================
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-model_path = os.path.join(
-    BASE_DIR,
-    "..",
-    "models",
-    "student_model.pkl"
-)
-
-scaler_path = os.path.join(
-    BASE_DIR,
-    "..",
-    "models",
-    "scaler.pkl"
-)
-
-encoder_path = os.path.join(
-    BASE_DIR,
-    "..",
-    "models",
-    "label_encoder.pkl"
-)
-
-model = pickle.load(open(model_path, "rb"))
-scaler = pickle.load(open(scaler_path, "rb"))
-label_encoder = pickle.load(open(encoder_path, "rb"))
+import requests
 
 # =========================
 # PAGE CONFIG
@@ -50,17 +17,14 @@ st.set_page_config(
 
 st.title("🎓 Student Performance Prediction System")
 
-st.markdown(
-    """
-    Predict whether a student is likely to perform:
+st.markdown("""
+Predict student academic performance using Machine Learning.
 
-    - Weak
-    - Average
-    - Excellent
-
-    using machine learning techniques.
-    """
-)
+Possible categories:
+- Weak
+- Average
+- Excellent
+""")
 
 # =========================
 # SIDEBAR INPUTS
@@ -111,62 +75,49 @@ G2 = st.sidebar.slider(
 )
 
 # =========================
-# CREATE INPUT ARRAY
-# =========================
-
-input_data = np.array([
-    G1,
-    G2,
-    absences,
-    age,
-    studytime,
-    failures
-]).reshape(1, -1)
-
-# =========================
-# SCALE INPUT
-# =========================
-
-input_scaled = scaler.transform(input_data)
-
-# =========================
-# PREDICTION
-# =========================
-
-prediction = model.predict(input_scaled)
-
-prediction_proba = model.predict_proba(input_scaled)
-
-result = label_encoder.inverse_transform(prediction)
-
-# =========================
 # BUTTON
 # =========================
 
 if st.button("Predict Performance"):
 
-    confidence = np.max(prediction_proba) * 100
+    url = "http://127.0.0.1:8000/predict"
 
-    if result[0] == "Excellent":
+    payload = {
+        "age": age,
+        "studytime": studytime,
+        "failures": failures,
+        "absences": absences,
+        "G1": G1,
+        "G2": G2
+    }
+
+    response = requests.post(url, json=payload)
+
+    result = response.json()
+
+    prediction = result["prediction"]
+    confidence = result["confidence_score"]
+
+    if prediction == "Excellent":
 
         st.success(
-            f"🎉 Predicted Performance: {result[0]}"
+            f"🎉 Predicted Performance: {prediction}"
         )
 
-    elif result[0] == "Average":
+    elif prediction == "Average":
 
         st.warning(
-            f"📘 Predicted Performance: {result[0]}"
+            f"📘 Predicted Performance: {prediction}"
         )
 
     else:
 
         st.error(
-            f"⚠️ Predicted Performance: {result[0]}"
+            f"⚠️ Predicted Performance: {prediction}"
         )
 
     st.info(
-        f"Confidence Score: {confidence:.2f}%"
+        f"Confidence Score: {confidence}%"
     )
 
 # =========================
@@ -176,5 +127,5 @@ if st.button("Predict Performance"):
 st.markdown("---")
 
 st.caption(
-    "Machine Learning Project | Student Performance Prediction"
+    "Student Performance Prediction using ML + FastAPI + Docker + AWS"
 )
